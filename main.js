@@ -24812,28 +24812,58 @@ module.exports = g;
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(/*! react */ "./node_modules/react/index.js");
-const { Text, Color } = __webpack_require__(/*! scenegraph */ "scenegraph");
+const { Text, Color, ImageFill } = __webpack_require__(/*! scenegraph */ "scenegraph");
+const fs = __webpack_require__(/*! uxp */ "uxp").storage.localFileSystem;
 
 class HelloForm extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { name: "" };
-        this.onInputChange = e => {
-            this.setState({ name: e.target.value });
+        this.state = { breed: "", breeds: [], url: null };
+        this.breedSelected = e => {
+            const breed = e.target.value;
+            this.setState({ breed: breed });
+            fetch(`https://dog.ceo/api/breed/${breed}/images/random`).then(res => res.json()).then(image => {
+                this.setState({ url: image.message });
+            });
         };
-        this.onDoneClick = e => {
+
+        this.anotherDog = () => {
+            const breed = this.state.breed;
+            this.setState({ url: null });
+
+            fetch(`https://dog.ceo/api/breed/${breed}/images/random`).then(res => res.json()).then(image => {
+                this.setState({ url: image.message });
+            });
+        };
+        this.onDoneClick = async e => {
             const selection = this.props.selection;
+            // TODO create image with url
             const newText = new Text();
-            newText.text = this.state.name;
+            newText.text = this.state.breed;
             newText.styleRanges = [{
                 length: newText.text.length,
                 fill: new Color("#00F"),
                 fontSize: 50
             }];
-            selection.insertionParent.addChild(newText);
-            newText.moveInParentCoordinates(100, 100);
+            // selection.insertionParent.addChild(newText);
+            // newText.moveInParentCoordinates(100, 100);
+
+
+            let imageFile = await fs.getFileForOpening({ types: storage.fileTypes.images });
+
+            // Set fill of first selected item
+            // const fill = new ImageFill(this.state.url);
+            const fill = new ImageFill(imageFile);
+            selection.items[0].fill = fill;
             props.dialog.close();
         };
+    }
+
+    componentDidMount() {
+        fetch("https://dog.ceo/api/breeds/list/all").then(res => res.json()).then(breeds => {
+            const br = Object.keys(breeds.message);
+            this.setState({ breeds: br });
+        });
     }
 
     render() {
@@ -24843,30 +24873,44 @@ class HelloForm extends React.Component {
             React.createElement(
                 "h1",
                 null,
-                "React with JSX Components"
+                "Random dog photo"
             ),
             React.createElement(
                 "label",
                 null,
-                React.createElement(
-                    "span",
-                    null,
-                    "What is your name?"
-                ),
-                React.createElement("input", { onChange: this.onInputChange })
+                "Pick a breed"
             ),
             React.createElement(
-                "p",
+                "select",
+                { onChange: this.breedSelected },
+                this.state.breeds.map(breed => React.createElement(
+                    "option",
+                    { value: breed },
+                    breed[0].toUpperCase() + breed.slice(1)
+                ))
+            ),
+            this.state.url && React.createElement(
+                "div",
                 null,
-                `Hello ${this.state.name}`
+                React.createElement("img", { src: this.state.url }),
+                React.createElement(
+                    "p",
+                    null,
+                    "If you don't like this doggy (\uD83D\uDE14) you can select ",
+                    React.createElement(
+                        "button",
+                        { onClick: this.anotherDog },
+                        "another"
+                    )
+                )
             ),
             React.createElement(
                 "footer",
                 null,
                 React.createElement(
                     "button",
-                    { type: "submit", "uxp-variant": "cta" },
-                    "Done"
+                    { disabled: !this.state.url, type: "submit", "uxp-variant": "cta" },
+                    "Add doggy!"
                 )
             )
         );
@@ -24934,6 +24978,17 @@ if (window.HTMLIFrameElement == null) {
 /***/ (function(module, exports) {
 
 module.exports = require("scenegraph");
+
+/***/ }),
+
+/***/ "uxp":
+/*!**********************!*\
+  !*** external "uxp" ***!
+  \**********************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("uxp");
 
 /***/ })
 
